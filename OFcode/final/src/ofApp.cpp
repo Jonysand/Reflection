@@ -95,6 +95,7 @@ void ofApp::update() {
     // draw in kinectView
     if(kinect.isFrameNew()) {
         grayImage.setFromPixels(kinect.getDepthPixels());
+        grayImage.mirror(false, true);
         // we do two thresholds - one for the far plane and one for the near plane
         // we then do a cvAnd to get the pixels which are a union of the two thresholds
         grayThreshNear = grayImage;
@@ -120,12 +121,14 @@ void ofApp::update() {
                 grid_x = get<0>(grids);
                 grid_y = get<1>(grids);
 #ifdef SERIAL
-                if(grid_x%2==0){
-                    index = 12*grid_x+grid_y;
-                }else if(grid_x%2==1){
-                    index = 12*(grid_x+1)-1-grid_y;
+                if( (grid_x>=0&grid_x<=7) & (grid_y>=0&grid_y<=12) ){
+                    if(grid_x%2==0){
+                        index = 12*grid_x+grid_y;
+                    }else if(grid_x%2==1){
+                        index = 12*(grid_x+1)-1-grid_y;
+                    }
+                    serial.writeByte(index);
                 }
-                serial.writeByte(index);
 #endif
                 gridsList.push_back(grids);
             }
@@ -140,7 +143,7 @@ void ofApp::draw() {
     //----------------
     if(adjustMapping){
         kinectView.begin();
-        kinect.drawDepth(0, 0);
+        kinect.drawDepth(kinect.width, 0, -kinect.width, kinect.height);
         kinectView.end();
         positionView.begin();
         grayImage.draw(0, 0);

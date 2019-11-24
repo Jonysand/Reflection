@@ -16,16 +16,16 @@ void setup() {
   Serial.begin(9600);
 //  while (!Serial){}
   strip.begin();
-  background = strip.Color(0, 0, 0);
-  plixelColor = strip.Color(255, 255, 255);
+  background = strip.Color(20, 20, 20);
+  plixelColor = strip.Color(0, 255, 255);
   strip.fill(background, 0, 84);
   strip.show();
 }
 
 void loop(){
-//  strip.fill(background, 0, pixelIndex);
-//  strip.fill(background, pixelIndex+1, 83-pixelIndex);
-  strip.setPixelColor(pixelIndex, background);
+  strip.fill(background, 0, pixelIndex);
+  strip.fill(background, pixelIndex+1, 83-pixelIndex);
+  strip.setPixelColor(pixelIndex, plixelColor);
   strip.setBrightness(brightness);
   strip.show();
   brightness += brightAdd;

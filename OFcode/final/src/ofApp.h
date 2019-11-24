@@ -13,7 +13,7 @@
 //--------------------------
 // comment/uncommment option
 
-//#define SERIAL
+#define SERIAL
 //--------------------------
 
 class ofApp : public ofBaseApp {
