@@ -5,7 +5,7 @@ void ofApp::setup()
     ofBackground(0);
 
     renderFbo.allocate(PROJECTOR_RESOLUTION_X, PROJECTOR_RESOLUTION_Y);
-    warpedImg.allocate(MODEL_RESOLUTION_X, MODEL_RESOLUTION_Y, OF_IMAGE_COLOR);
+    mappedFbo.allocate(MODEL_RESOLUTION_X, MODEL_RESOLUTION_Y);
 
     srcPoints.push_back(glm::vec2(0, 0));
     srcPoints.push_back(glm::vec2(1, 0));
@@ -39,7 +39,7 @@ void ofApp::update()
         {
             // Scale points to projector dimensions.
             cvSrcPoints.push_back(cv::Point2f(srcPoints[i].x * PROJECTOR_RESOLUTION_X, srcPoints[i].y * PROJECTOR_RESOLUTION_Y));
-            cvDstPoints.push_back(cv::Point2f(dstPoints[i].x * PROJECTOR_RESOLUTION_X, dstPoints[i].y * PROJECTOR_RESOLUTION_Y));
+            cvDstPoints.push_back(cv::Point2f(dstPoints[i].x * MODEL_RESOLUTION_X, dstPoints[i].y * MODEL_RESOLUTION_Y));
         }
 
         // Generate a homography from the two sets of points.
@@ -47,14 +47,12 @@ void ofApp::update()
         homographyReady = true;
     }
 
-    glm::vec2 gravity = glm::vec2(0, 9.8f);
     renderFbo.begin();
     {
         ofClear(255, 255);
 
         for (int i = 0; i < balls.size(); i++)
         {
-            balls[i].update(gravity);
             balls[i].draw();
         }
     }
@@ -62,13 +60,22 @@ void ofApp::update()
 
     if (homographyReady)
     {
-        // Read the FBO to pixels.
-        renderFbo.readToPixels(renderPixels);
-
-        // Warp the pixels into a new image.
-        warpedImg.setFromPixels(renderPixels);
-        ofxCv::warpPerspective(renderPixels, warpedImg, homographyMat, CV_INTER_LINEAR);
-        warpedImg.update();
+        mappedFbo.begin();
+        ofClear(255, 255);
+        ofSetBackgroundColor(255, 255,255);
+        ofSetColor(0);
+        for (int i = 0; i < balls.size(); i++)
+        {
+            std::vector<double> cvSrcMat;
+            cvSrcMat.push_back(double(balls[i].pos.x));
+            cvSrcMat.push_back(double(balls[i].pos.y));
+            cvSrcMat.push_back(double(1));
+            cv::Mat tempMat = homographyMat*cv::Mat(cvSrcMat).reshape(1,3);
+            double point_x = tempMat.at<double>(0)/tempMat.at<double>(2);
+            double point_y = tempMat.at<double>(1)/tempMat.at<double>(2);
+            ofDrawCircle(point_x, point_y, 5);
+        }
+        mappedFbo.end();
     }
 }
 
@@ -82,25 +89,22 @@ void ofApp::draw()
     if (homographyReady)
     {
         // Draw warped image on the right.
-        warpedImg.draw(640, 0, 640, 360);
+        mappedFbo.draw(640, 0, 640, 360);
     }
 
-    if (adjustMapping)
+    // Draw mapping points.
+    for (int i = 0; i < srcPoints.size(); i++)
     {
-        // Draw mapping points.
-        for (int i = 0; i < srcPoints.size(); i++)
-        {
-            ofSetColor(0, 0, 255);
-            glm::vec2 srcPt = glm::vec2(ofMap(srcPoints[i].x, 0, 1, 0, 640), ofMap(srcPoints[i].y, 0, 1, 0, 360));
-            ofDrawCircle(srcPt, 10);
+        ofSetColor(0, 0, 255);
+        glm::vec2 srcPt = glm::vec2(ofMap(srcPoints[i].x, 0, 1, 0, 640), ofMap(srcPoints[i].y, 0, 1, 0, 360));
+        ofDrawCircle(srcPt, 10);
 
-            ofSetColor(255, 0, 0);
-            glm::vec2 dstPt = glm::vec2(ofMap(dstPoints[i].x, 0, 1, 640, 1280), ofMap(dstPoints[i].y, 0, 1, 0, 360));
-            ofDrawCircle(dstPt, 10);
+        ofSetColor(255, 0, 0);
+        glm::vec2 dstPt = glm::vec2(ofMap(dstPoints[i].x, 0, 1, 640, 1280), ofMap(dstPoints[i].y, 0, 1, 0, 360));
+        ofDrawCircle(dstPt, 10);
 
-            ofSetColor(255, 0, 255);
-            ofDrawLine(srcPt, dstPt);
-        }
+        ofSetColor(255, 0, 255);
+        ofDrawLine(srcPt, dstPt);
     }
 
     guiPanel.draw();
@@ -113,7 +117,7 @@ void ofApp::drawProjector(ofEventArgs& args)
 
     if (homographyReady && projectWarped)
     {
-        warpedImg.draw(0, 0);
+        mappedFbo.draw(640, 0);
     }
     else
     {
@@ -155,8 +159,8 @@ void ofApp::mouseDragged(int x, int y, int button)
         if (activePoint > -1)
         {
             // Move the active Point under the mouse, but stick to edges.
-            glm::vec2 normPt = glm::vec2(ofMap(x, 640, 1280, 0, 1, true), ofMap(y, 0, 360, 0, 1, true));
-            dstPoints[activePoint] = normPt;
+            glm::vec2 normPt = glm::vec2(ofMap(x, 0, 640, 0, 1, true), ofMap(y, 0, 360, 0, 1, true));
+            srcPoints[activePoint] = normPt;
         }
     }
     else
@@ -179,9 +183,9 @@ void ofApp::mousePressed(int x, int y, int button)
         // Try to snap to a dst point.
         for (int i = 0; i < dstPoints.size(); i++)
         {
-            glm::vec2 dstPt = glm::vec2(ofMap(dstPoints[i].x, 0, 1, 640, 1280), ofMap(dstPoints[i].y, 0, 1, 0, 360));
+            glm::vec2 srcPt = glm::vec2(ofMap(srcPoints[i].x, 0, 1, 0, 640), ofMap(srcPoints[i].y, 0, 1, 0, 360));
             glm::vec2 mousePt = glm::vec2(x, y);
-            if (glm::distance(dstPt, mousePt) < 20)
+            if (glm::distance(srcPt, mousePt) < 20)
             {
                 // Close enough, let's grab this one.
                 activePoint = i;

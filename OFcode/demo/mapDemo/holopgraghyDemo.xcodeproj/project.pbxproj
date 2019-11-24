@@ -265,7 +265,7 @@
 		73157AAE32787C63313C7D8E /* Wrappers.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = Wrappers.h; path = ../../../addons/ofxCv/libs/ofxCv/include/ofxCv/Wrappers.h; sourceTree = SOURCE_ROOT; };
 		736F0723356531E6C2E4C75D /* logger.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = logger.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/core/utils/logger.hpp; sourceTree = SOURCE_ROOT; };
 		739A241EB853DC3C40E99B38 /* sampling.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = sampling.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv4/opencv2/flann/sampling.h; sourceTree = SOURCE_ROOT; };
-		751CC0B523889B4700D146BE /* holopgraghyDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = holopgraghyDemo.app; path = /Users/yongkunli/Desktop/of_v20191119_osx_release/apps/pcomp/mapDemo/bin/holopgraghyDemo.app; sourceTree = "<absolute>"; };
+		751CC0B72388A7AB00D146BE /* holopgraghyDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = holopgraghyDemo.app; path = /Users/yongkunli/Desktop/of_v20191119_osx_release/apps/pcomp/mapDemo/bin/holopgraghyDemo.app; sourceTree = "<absolute>"; };
 		75386E12E645F42737CA0EB5 /* scan.hpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = scan.hpp; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/core/cuda/scan.hpp; sourceTree = SOURCE_ROOT; };
 		758F19335D4E46A5E0DE449F /* kdtree_single_index.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = kdtree_single_index.h; path = ../../../addons/ofxOpenCv/libs/opencv/include/opencv2/flann/kdtree_single_index.h; sourceTree = SOURCE_ROOT; };
 		77A1A692522820F935B58762 /* Kalman.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Kalman.cpp; path = ../../../addons/ofxCv/libs/ofxCv/src/Kalman.cpp; sourceTree = SOURCE_ROOT; };
@@ -2287,7 +2287,7 @@
 			);
 			name = holopgraghyDemo;
 			productName = myOFApp;
-			productReference = 751CC0B523889B4700D146BE /* holopgraghyDemo.app */;
+			productReference = 751CC0B72388A7AB00D146BE /* holopgraghyDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

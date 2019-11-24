@@ -12,7 +12,7 @@ void ofApp::setup(){
 
 	int baud = 9600;
 
-	serial.setup("/dev/tty.usbmodem1432401", baud);
+	serial.setup("/dev/cu.usbmodem1432401", baud);
 }
 
 //--------------------------------------------------------------

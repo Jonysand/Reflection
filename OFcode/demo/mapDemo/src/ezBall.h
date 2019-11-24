@@ -9,9 +9,9 @@ public:
 
     void update(glm::vec2 force);
     void draw();
+    glm::vec2 pos;
 
 private:
-    glm::vec2 pos;
     glm::vec2 vel;
     glm::vec2 acc;
 

@@ -10,8 +10,8 @@
 // This must match the display resolution of your projector
 #define PROJECTOR_RESOLUTION_X 1920
 #define PROJECTOR_RESOLUTION_Y 1080
-#define MODEL_RESOLUTION_X 350
-#define MODEL_RESOLUTION_Y 600
+#define MODEL_RESOLUTION_X 640
+#define MODEL_RESOLUTION_Y 360
 
 class ofApp : public ofBaseApp
 {
@@ -33,6 +33,7 @@ public:
     std::vector<ezBall> balls;
 
     ofFbo renderFbo;
+    ofFbo mappedFbo;
     ofPixels renderPixels;
     ofImage warpedImg;
 
