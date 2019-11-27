@@ -4,30 +4,27 @@
 
 #include <ArduinoBLE.h>
 
-#define Rpin 2
-#define Gpin 3
-#define Bpin 4
+#define LEDpin 2
 
-byte redValue = 100;
-byte greenValue = 0;
-byte blueValue = 0;
+int preState = 560;
+int tempState = 560;
 
-BLEService firstService("cea9d806-0ee5-11ea-8d71-362b9e155667");
-BLEByteCharacteristic redCharacteristic("cea9d807-0ee5-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
+byte data1 = 100;
+
+BLEService firstService("c648dc40-1122-11ea-8d71-362b9e155667");
+BLEByteCharacteristic data1Characteristic("c648dc41-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
 
 void setup() {
   Serial.begin (9600);
-
-  if (!BLE.begin()) {
-    Serial.println("starting BLE failed!");
-    while (1);
-  }
-
+  pinMode(LEDpin, OUTPUT);
+  pinMode(3, OUTPUT);
+  
+  BLE.begin();
   BLE.setLocalName("BLEseries1");
   BLE.setAdvertisedService(firstService);
-  firstService.addCharacteristic(redCharacteristic);
+  firstService.addCharacteristic(data1Characteristic);
   BLE.addService(firstService);
-  redCharacteristic.writeValue(redValue);
+  data1Characteristic.writeValue(data1);
   BLE.advertise();
 
   Serial.println("BLE series 1 ready!");
@@ -41,7 +38,19 @@ void loop() {
   if (central) {
     Serial.println(central.address());
     while (central.connected()){
-      
+      digitalWrite(LEDpin, HIGH);
+      tempState = analogRead(A0);
+      if((tempState-preState)>100){
+        preState = tempState;
+        data1Characteristic.writeValue(100);
+        digitalWrite(3, HIGH);
+      }
+      if((tempState-preState)<-100){
+        preState = tempState;
+        data1Characteristic.writeValue(0);
+        digitalWrite(3, LOW);
+      }
     }
+    digitalWrite(LEDpin, LOW);
   }
 }
