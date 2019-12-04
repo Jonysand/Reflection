@@ -20,10 +20,19 @@ void ofApp::setup() {
     grayImage.allocate(kinect.width, kinect.height);
     grayThreshNear.allocate(kinect.width, kinect.height);
     grayThreshFar.allocate(kinect.width, kinect.height);
-    nearThreshold.set("Near Threshold", 250, 0, 255);
-    farThreshold.set("Far Threshold", 230, 0, 255);
+    grayPreImage.allocate(kinect.width, kinect.height);
+    grayImageDif.allocate(kinect.width, kinect.height);
+    backgroundImg.allocate(kinect.width, kinect.height);
+    
+    grayPreImage.setFromPixels(kinect.getDepthPixels());
+    nearThreshold.set("Near Threshold", 255, 0, 255);
+    farThreshold.set("Far Threshold", 197, 0, 255);
+    blobMinArea.set("Blob Min Area", 1000, 100, 5000);
+    simpleThreshold.set("Threshold Value of BGS", 70, 0, 255);
+    captureBackground.set("Capture BG", true);
     angle = 0;
     kinect.setCameraTiltAngle(angle);
+    findingMethod.set("Findning Method", 3, 1, 4);
     
     
     //--------------
@@ -51,16 +60,20 @@ void ofApp::setup() {
 #ifdef SERIAL
     vector <ofSerialDeviceInfo> deviceList = serial.getDeviceList();
     int baud = 9600;
-    serial.setup("/dev/tty.usbmodem1432401", baud);
+    serial.setup("/dev/tty.usbmodem1412401", baud);
 #endif
     
     //----------
     // GUI setup
     //----------
     guiPanel.setup("PCOMP final", "settings.json");
+    guiPanel.add(findingMethod);
     guiPanel.add(adjustMapping);
     guiPanel.add(nearThreshold);
     guiPanel.add(farThreshold);
+    guiPanel.add(blobMinArea);
+    guiPanel.add(simpleThreshold);
+    guiPanel.add(captureBackground);
     ofSetFrameRate(60);
 }
 
@@ -92,31 +105,92 @@ void ofApp::update() {
     // Kinect
     //-------
     kinect.update();
-    // draw in kinectView
-    if(kinect.isFrameNew()) {
+    if (kinect.isFrameNew()) {
         grayImage.setFromPixels(kinect.getDepthPixels());
-        grayImage.mirror(false, true);
-        // we do two thresholds - one for the far plane and one for the near plane
-        // we then do a cvAnd to get the pixels which are a union of the two thresholds
-        grayThreshNear = grayImage;
-        grayThreshFar = grayImage;
-        grayThreshNear.threshold(nearThreshold, true);
-        grayThreshFar.threshold(farThreshold);
-        cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
-        grayImage.flagImageChanged();
-        contourFinder.findContours(grayImage, blobMinArea, (kinect.width*kinect.height)/2, 20, false);
+//        grayImage.mirror(false, true);
+        
+        // Simple blog finding
+        if (findingMethod == 1) {
+            grayThreshNear = grayImage;
+            grayThreshFar = grayImage;
+            grayThreshNear.threshold(nearThreshold, true);
+            grayThreshFar.threshold(farThreshold);
+            cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
+            grayImage.flagImageChanged();
+            contourFinder.findContours(grayImage, blobMinArea, (kinect.width*kinect.height)/2, 20, false);
+        }
+        // dfferential blob finding
+        else if (findingMethod == 2) {
+            cvAbsDiff(grayImage.getCvImage(), grayPreImage.getCvImage(), grayImageDif.getCvImage());
+            grayImageDif.flagImageChanged();
+            ofPixels & pixDif = grayImageDif.getPixels();
+            ofPixels & pixImg = grayImageDif.getPixels();
+            int numPixels = pixDif.size();
+            for(int i = 0; i < numPixels; i++) {
+                if(pixDif[i] > depthDifThreshold) {
+                    pixDif[i] = 255;
+                } else {
+                    pixDif[i] = 0;
+                }
+            }
+            contourFinder.findContours(grayImageDif, blobMinArea, (kinect.width*kinect.height)/2, 20, true);
+            grayPreImage.setFromPixels(grayImage.getPixels());
+            grayImage.setFromPixels(grayImageDif.getPixels());
+        }
+        // horizontal
+        else if (findingMethod == 3) {
+            cvAbsDiff(grayImage.getCvImage(), grayPreImage.getCvImage(), grayImageDif.getCvImage());
+            grayImageDif.flagImageChanged();
+            grayPreImage.setFromPixels(grayImage.getPixels());
+            ofPixels & pixDif = grayImageDif.getPixels();
+            ofPixels & pixImg = grayImage.getPixels();
+            int numPixels = pixDif.size();
+            for(int i = 0; i < numPixels; i++) {
+                if(pixDif[i] > depthDifThreshold) {
+                    pixDif[i] = 255;
+                } else {
+                    pixDif[i] = 0;
+                }
+            }
+            contourFinder.findContours(grayImageDif, blobMinArea, (kinect.width*kinect.height)/2, 20, true);
+            grayImage.setFromPixels(grayImageDif.getPixels());
+        }
+        // horizontal with BGS
+        else if (findingMethod == 4) {
+            if (captureBackground){
+                backgroundImg.setFromPixels(grayImage.getPixels());
+                captureBackground = false;
+            }
+            cvAbsDiff(grayImage.getCvImage(), backgroundImg.getCvImage(), grayImage.getCvImage());
+            grayImage.threshold(simpleThreshold);
+            grayImage.erode_3x3();
+            grayImage.dilate_3x3();
+            grayImage.flagImageChanged();
+            
+            contourFinder.findContours(grayImage, blobMinArea, (kinect.width*kinect.height)/2, 20, false);
+        }
+        
         if(homographyReady){
             for(int i=0;i<contourFinder.nBlobs;i++){
                 auto center =  contourFinder.blobs[i].centroid;
-                std::vector<double> cvSrcMat;
-                cvSrcMat.push_back(double(center.x));
-                cvSrcMat.push_back(double(center.y));
-                cvSrcMat.push_back(double(1));
-                
-                cv::Mat tempMat = homographyMat*cv::Mat(cvSrcMat).reshape(1,3);
-                double mapped_x = tempMat.at<double>(0)/tempMat.at<double>(2);
-                double mapped_y = tempMat.at<double>(1)/tempMat.at<double>(2);
-                
+                // from top
+                if (findingMethod == 1 ||  findingMethod == 2){
+                    std::vector<double> cvSrcMat;
+                    cvSrcMat.push_back(double(center.x));
+                    cvSrcMat.push_back(double(center.y));
+                    cvSrcMat.push_back(double(1));
+                    cv::Mat tempMat = homographyMat*cv::Mat(cvSrcMat).reshape(1,3);
+                    mapped_x = tempMat.at<double>(0)/tempMat.at<double>(2);
+                    mapped_y = tempMat.at<double>(1)/tempMat.at<double>(2);
+                }
+                // horizontally
+                else{
+                    mapped_x = center.x;
+                    mapped_y = kinect.getDistanceAt(center.x, center.y);
+//                    double theta = PI/3*(0.5-center.x/kinect.width);
+//                    mapped_y = cos(theta) * kinect.getDistanceAt(center.x, center.y);
+//                    mapped_x = roomWidth/2 - sin(theta)*kinect.getDistanceAt(center.x, center.y);
+                }
                 tuple<int, int> grids = getGrids(mapped_x, mapped_y);
                 grid_x = get<0>(grids);
                 grid_y = get<1>(grids);
@@ -127,6 +201,7 @@ void ofApp::update() {
                     }else if(grid_x%2==1){
                         index = 12*(grid_x+1)-1-grid_y;
                     }
+                    serial.flush();
                     serial.writeByte(index);
                 }
 #endif
@@ -143,10 +218,11 @@ void ofApp::draw() {
     //----------------
     if(adjustMapping){
         kinectView.begin();
-        kinect.drawDepth(kinect.width, 0, -kinect.width, kinect.height);
+        kinect.drawDepth(0, 0);
         kinectView.end();
         positionView.begin();
         grayImage.draw(0, 0);
+        contourFinder.draw();
         positionView.end();
         modelView.begin();
         drawPositions(gridsList, 255, 255, 255);
@@ -205,8 +281,16 @@ tuple<int, int> ofApp::getGrids(double cord_x, double cord_y){
     int gridX;
     int gridY;
     
-    gridX = cord_x*gridWidth/MODEL_RESOLUTION_X;
-    gridY = cord_y*gridHeight/MODEL_RESOLUTION_Y;
+    if (findingMethod==1 || findingMethod==2){
+        gridX = cord_x*gridWidth/MODEL_RESOLUTION_X;
+        gridY = cord_y*gridHeight/MODEL_RESOLUTION_Y;
+    }else if (findingMethod == 3){
+        gridX = cord_x*gridWidth/kinect.width;
+        gridY = cord_y*gridHeight/roomHeight;
+    }else if (findingMethod == 4){
+        gridX = cord_x*gridWidth/kinect.width;
+        gridY = cord_y*gridHeight/roomHeight;
+    }
     
     return make_tuple(gridX, gridY);
 }

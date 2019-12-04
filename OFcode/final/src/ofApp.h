@@ -4,7 +4,10 @@
 #include "ofxOpenCv.h"
 #include "ofxKinect.h"
 #include "ofxGui.h"
+#include <math.h>
+//#include "ofxCv.h"
 
+//#define PI 3.14159265
 #define MODEL_RESOLUTION_X 350
 #define MODEL_RESOLUTION_Y 600
 #define VIEW_WIDTH 640
@@ -34,13 +37,26 @@ public:
     //-------
 	ofxKinect kinect;
 	ofxCvGrayscaleImage grayImage;
+    ofxCvGrayscaleImage grayPreImage;
+    ofxCvGrayscaleImage grayImageDif;
 	ofxCvGrayscaleImage grayThreshNear;
 	ofxCvGrayscaleImage grayThreshFar;
 	ofxCvContourFinder contourFinder;
     ofParameter<int> nearThreshold;
     ofParameter<int> farThreshold;
 	int angle;
-    int blobMinArea = 500;
+    ofParameter<int> blobMinArea;
+    int depthDifThreshold = 5;
+    ofParameter<int> findingMethod;
+    // 1: simple threshold
+    // 2: differential threshold
+    // 3: horizontal
+    // 4: horizontal with BGS
+    
+    // for BGS
+    ofxCvGrayscaleImage backgroundImg;
+    ofParameter<bool> captureBackground;
+    ofParameter<int> simpleThreshold;
     
     //----
     // map
@@ -49,12 +65,16 @@ public:
     std::vector<glm::vec2> dstPoints;
     tuple<int, int> getGrids(double cord_x, double cord_y);
     vector<tuple<int, int>> gridsList;
+    double mapped_x;
+    double mapped_y;
     cv::Mat homographyMat;
     ofFbo positionView;
     ofFbo kinectView;
     ofFbo modelView;
     bool homographyReady;
     int activePoint;
+    int roomWidth = 2311.4; // mm
+    int roomHeight = 3975.1; // mm
     int grid_x = 0;
     int grid_y = 0;
     int gridWidth = 7;

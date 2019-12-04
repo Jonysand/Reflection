@@ -1,17 +1,21 @@
 /*
- * This device both advertises sensor data,
- * and reads data from other devices.
+ * Chair 2
+ * 
+ * data2Characteristic: 
+ * 0 -> not sitted on;
+ * 255 -> sitted on;
  */
 
 #include <ArduinoBLE.h>
 
 #define LEDpin 2
+#define seatPin A7
 
 int preState = 560;
 int tempState = 560;
 
 byte data1 = 0;
-byte data2 = 100;
+byte data2 = 255;
 
 BLEService sencondService("c648e0dc-1122-11ea-8d71-362b9e155667");
 BLEByteCharacteristic data1Characteristic("c648e0dd-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
@@ -20,10 +24,11 @@ BLEByteCharacteristic data2Characteristic("c648e0de-1122-11ea-8d71-362b9e155667"
 void setup() {
   Serial.begin (9600);
   pinMode(LEDpin, OUTPUT);
-  pinMode(3, OUTPUT);
+  pinMode(seatPin, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   BLE.begin();
-  BLE.setLocalName("BLEseries2");
+  BLE.setLocalName("BLE_chair2_<2>");
   BLE.setAdvertisedService(sencondService);
   sencondService.addCharacteristic(data1Characteristic);
   sencondService.addCharacteristic(data2Characteristic);
@@ -79,16 +84,16 @@ void getData(BLEDevice peripheral) {
         preData1Characteristic.readValue(data1);
         data1Characteristic.writeValue(data1);
         
-        tempState = analogRead(A0);
+        tempState = analogRead(seatPin);
         if((tempState-preState)>100){
           preState = tempState;
-          data2Characteristic.writeValue(100);
-          digitalWrite(3, HIGH);
+          data2Characteristic.writeValue(255);
+          digitalWrite(LED_BUILTIN, HIGH);
         }
         if((tempState-preState)<-100){
           preState = tempState;
           data2Characteristic.writeValue(0);
-          digitalWrite(3, LOW);
+          digitalWrite(LED_BUILTIN, LOW);
         }
       }
       digitalWrite(LEDpin, LOW);

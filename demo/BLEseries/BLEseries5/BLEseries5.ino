@@ -1,8 +1,20 @@
+/*
+ * Central
+ * controlling LED and 2 model chairs
+ */
+
 #include <ArduinoBLE.h>
+#include <Servo.h>
 #include <Adafruit_NeoPixel.h>
 
 #define LED_PIN    6
 #define LED_COUNT 84
+#define chairPin1 3
+#define chairPin2 5
+#define ledRpin 12
+#define ledGpin 11
+#define ledBpin 10
+
 
 //----
 // BLE
@@ -11,7 +23,7 @@ byte data1 = 0;
 byte data2 = 0;
 byte data3 = 0;
 byte data4 = 0;
-byte data5 = 100;
+byte data5 = 0;
 
 //----------
 // LED strip
@@ -23,25 +35,34 @@ int brightAdd = 1;
 uint32_t background;
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
+//--------------
+// Other Control
+//--------------
+Servo chairServo1;
+Servo chairServo2;
+
+
 void setup() {
   // LED
   strip.begin();
-  background = strip.Color(0, 0, 0);
-  plixelColor = strip.Color(0, 20, 20);
+  background = strip.Color(100, 100, 100);
+  plixelColor = strip.Color(0, 0, 255);
   strip.fill(background, 0, 84);
   strip.show();
+
+  // Other control
+  chairServo1.attach(chairPin1);
+  chairServo2.attach(chairPin2);
 
   // BLE
   Serial.begin (9600);
   BLE.begin();
-  Serial.println("BLE series 5 ready!");
   BLE.scanForUuid("c648e398-1122-11ea-8d71-362b9e155667");
 }
 
 void loop() {
   BLEDevice peripheral = BLE.available();
   if (peripheral){
-    Serial.println("Found");
     BLE.stopScan();
     getData(peripheral);
     BLE.scanForUuid("c648e398-1122-11ea-8d71-362b9e155667");
@@ -53,12 +74,10 @@ void loop() {
 void getData(BLEDevice peripheral) {
   if (peripheral.connect()) {
   } else {
-    Serial.println("fail connect!");
     return;
   }
   if (peripheral.discoverAttributes()) {
   } else {
-    Serial.println("fail discoverAttributes!");
     peripheral.disconnect();
     return;
   }
@@ -67,8 +86,8 @@ void getData(BLEDevice peripheral) {
   BLECharacteristic preData2Characteristic = peripheral.characteristic("c648e400-1122-11ea-8d71-362b9e155667");
   BLECharacteristic preData3Characteristic = peripheral.characteristic("c648e401-1122-11ea-8d71-362b9e155667");
   BLECharacteristic preData4Characteristic = peripheral.characteristic("c648e402-1122-11ea-8d71-362b9e155667");
-  if (!preData1Characteristic || !preData2Characteristic || !preData3Characteristic || !preData4Characteristic) {
-    Serial.println("fail BLECharacteristic!");
+  BLECharacteristic preData5Characteristic = peripheral.characteristic("c648e403-1122-11ea-8d71-362b9e155667");
+  if (!preData1Characteristic || !preData2Characteristic || !preData3Characteristic || !preData4Characteristic || !preData5Characteristic) {
     peripheral.disconnect();
     return;
   }
@@ -77,38 +96,65 @@ void getData(BLEDevice peripheral) {
     preData2Characteristic.readValue(data2);
     preData3Characteristic.readValue(data3);
     preData4Characteristic.readValue(data4);
+    preData5Characteristic.readValue(data5);
 
-    if(data1 == 100){
-      strip.fill(plixelColor, 0, 12);
-    }else{
-      strip.fill(background, 0, 12);
-    }
-    
-    if(data2 == 100){
-      strip.fill(plixelColor, 12, 12);
-    }else{
-      strip.fill(background, 12, 12);
-    }
-    
-    if(data3 == 100){
-      strip.fill(plixelColor, 24, 12);
-    }else{
-      strip.fill(background, 24, 12);
-    }
-    
-    if(data4 == 100){
-      strip.fill(plixelColor, 36, 12);
-    }else{
-      strip.fill(background, 36, 12);
-    }
-    
-    if(data5 == 100){
-      strip.fill(plixelColor, 48, 12);
-    }else{
-      strip.fill(background, 48, 12);
-    }
-    
+    // LED
+    strip.fill(background, 0, pixelIndex);
+    strip.fill(background, pixelIndex+1, 83-pixelIndex);
+    strip.setPixelColor(pixelIndex, plixelColor);
+    strip.setBrightness(brightness);
     strip.show();
+    brightness += brightAdd;
+    if(brightness>254 || brightness<100){
+      brightAdd *= -1;
+    }
+    if(Serial.available()){
+      pixelIndex = Serial.read();
+    }
+
+    //--------
+    // Chair 1
+    //--------
+    if(data1 == 255){
+      chairServo1.write(90);
+    }else{
+      chairServo1.write(0);
+    }
+
+    //--------
+    // Chair 2
+    //--------
+    if(data2 == 255){
+      chairServo2.write(90);
+    }else{
+      chairServo2.write(0);
+    }
+
+    //-----
+    // Door
+    //-----
+    if(data3 == 255){
+      analogWrite(ledRpin, 0);
+      analogWrite(ledGpin, 0);
+      analogWrite(ledBpin, 0);
+    }else{
+      analogWrite(ledRpin, 255 - lowByte(background>>16));
+      analogWrite(ledGpin, 255 - lowByte(background>>8));
+      analogWrite(ledBpin, 255 - lowByte(background));
+    }
+
+    //------
+    // Phone & Book
+    //------
+    if(data4 == 255){
+      background = strip.Color(100, 0, 0);
+    }
+    if(data5 == 255){
+      background = strip.Color(0, 100, 0);
+    }
+    if (data4 != 255 & data5 != 255) {
+      background = strip.Color(100, 100, 100);
+    }
   }
   
   peripheral.disconnect();

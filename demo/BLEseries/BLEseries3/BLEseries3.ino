@@ -1,15 +1,21 @@
 /*
- * This device both advertises sensor data,
- * and reads data from other devices.
+ * Door
+ * 
+ * data3Characteristic: 
+ * 0 -> closed;
+ * 255 -> opened;
  */
 
 #include <ArduinoBLE.h>
 
 #define LEDpin 2
+#define doorPin 3
+
+int doorState = LOW;
 
 byte data1 = 0;
 byte data2 = 0;
-byte data3 = 100;
+byte data3 = 255;
 
 BLEService thirdService("c648e26c-1122-11ea-8d71-362b9e155667");
 BLEByteCharacteristic data1Characteristic("c648e26d-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
@@ -19,9 +25,10 @@ BLEByteCharacteristic data3Characteristic("c648e26f-1122-11ea-8d71-362b9e155667"
 void setup() {
   Serial.begin (9600);
   pinMode(LEDpin, OUTPUT);
+  pinMode(doorPin, INPUT);
 
   BLE.begin();
-  BLE.setLocalName("BLEseries3");
+  BLE.setLocalName("BLE_door_<3>");
   BLE.setAdvertisedService(thirdService);
   thirdService.addCharacteristic(data1Characteristic);
   thirdService.addCharacteristic(data2Characteristic);
@@ -81,6 +88,12 @@ void getData(BLEDevice peripheral) {
         preData2Characteristic.readValue(data2);
         data1Characteristic.writeValue(data1);
         data2Characteristic.writeValue(data2);
+
+        if(digitalRead(doorPin)==LOW){
+          data3Characteristic.writeValue(0);
+        }else{
+          data3Characteristic.writeValue(255);
+        }
       }
       digitalWrite(LEDpin, LOW);
     }
