@@ -12,6 +12,10 @@
 #define MODEL_RESOLUTION_Y 600
 #define VIEW_WIDTH 640
 #define VIEW_HEIGHT 480
+#define roomWidth 2311.4 // mm
+#define roomHeight 3975.1 // mm
+#define gridWidth 7
+#define gridHeight 12
 
 //--------------------------
 // comment/uncommment option
@@ -73,20 +77,34 @@ public:
     ofFbo modelView;
     bool homographyReady;
     int activePoint;
-    int roomWidth = 2311.4; // mm
-    int roomHeight = 3975.1; // mm
     int grid_x = 0;
     int grid_y = 0;
-    int gridWidth = 7;
-    int gridHeight = 12;
+    
+    //------
+    // Sound
+    //------
+    ofSoundPlayer  BookSound;
+    ofSoundPlayer  PhoneSound_noti;
+    ofSoundPlayer  PhoneSound_alarm;
+    ofSoundPlayer  ForestSound;
+    ofSoundPlayer  LampSound;
+    const Byte bookData = 64;
+    const Byte phoneData = 128;
+    bool phoneNotiPlayed = false;
+    float phoneNotiStartTime = 0;
+    const Byte lampData = 192;
+    bool lampPlayed = false;
+    
     
     //-------
     // Serial
     //-------
 #ifdef SERIAL
     ofSerial    serial;
-    unsigned char index;
 #endif
+    unsigned char LEDindex = 0;
+    unsigned char preLEDindex = 0;
+    int dataFromArd;
     
     //--------------------------
     // simualtion mapping canvas

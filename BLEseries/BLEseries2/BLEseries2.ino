@@ -1,29 +1,31 @@
 /*
- * Chair 2
- * 
- * data2Characteristic: 
- * 0 -> not sitted on;
- * 255 -> sitted on;
- */
+   Chair 2
+
+   data2Characteristic:
+   0 -> not sitted on;
+   255 -> sitted on;
+*/
 
 #include <ArduinoBLE.h>
 
-#define LEDpin 2
 #define seatPin A7
 
-int preState = 560;
-int tempState = 560;
+const byte howMany = 100;
+int readings[howMany];
+int readIndex = 0;
+int total = 0;
+int serialCount = 0;
+int sensorValue = 0;
 
 byte data1 = 0;
-byte data2 = 255;
+byte data2 = 0;
 
 BLEService sencondService("c648e0dc-1122-11ea-8d71-362b9e155667");
-BLEByteCharacteristic data1Characteristic("c648e0dd-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data2Characteristic("c648e0de-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
+BLEByteCharacteristic data1Characteristic("c648e0dd-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data2Characteristic("c648e0de-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
 
 void setup() {
   Serial.begin (9600);
-  pinMode(LEDpin, OUTPUT);
   pinMode(seatPin, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -47,7 +49,7 @@ void loop() {
   //-----------------------------
 
   BLEDevice peripheral = BLE.available();
-  if (peripheral){
+  if (peripheral) {
     Serial.println("Found");
     BLE.stopScan();
     getData(peripheral);
@@ -75,30 +77,35 @@ void getData(BLEDevice peripheral) {
     peripheral.disconnect();
     return;
   }
-  while(peripheral.connected()){
+  preData1Characteristic.subscribe();
+  while (peripheral.connected()) {
     BLEDevice central = BLE.central();
-    if (central){
-      Serial.println(central.address());
-      while (central.connected()){
-        digitalWrite(LEDpin, HIGH);
+    if (central) {
+      while (central.connected()) {
+        digitalWrite(LED_BUILTIN, HIGH);
         preData1Characteristic.readValue(data1);
         data1Characteristic.writeValue(data1);
-        
-        tempState = analogRead(seatPin);
-        if((tempState-preState)>100){
-          preState = tempState;
-          data2Characteristic.writeValue(255);
-          digitalWrite(LED_BUILTIN, HIGH);
+
+        total -= readings[readIndex];
+        readings[readIndex] = analogRead(A7);
+        total += readings[readIndex];
+        readIndex++;
+        if (readIndex >= howMany) {
+          readIndex = 0;
         }
-        if((tempState-preState)<-100){
-          preState = tempState;
+        sensorValue = total / howMany;
+        if (sensorValue < 1000) {
+          if(data2Characteristic.value()==0)
+          data2Characteristic.writeValue(255);
+        }
+        else {
+          if(data2Characteristic.value()==255)
           data2Characteristic.writeValue(0);
-          digitalWrite(LED_BUILTIN, LOW);
         }
       }
-      digitalWrite(LEDpin, LOW);
+      digitalWrite(LED_BUILTIN, LOW);
     }
   }
-  
+
   peripheral.disconnect();
 }

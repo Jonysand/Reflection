@@ -4,6 +4,25 @@
 void ofApp::setup() {
     ofSetLogLevel(OF_LOG_VERBOSE);
     
+    //--------------
+    // Sound preload
+    //--------------
+    BookSound.load("book.wav");
+    PhoneSound_noti.load("phone_noti.mp3");
+    PhoneSound_alarm.load("phone_radar.mp3");
+    ForestSound.load("forest.mp3");
+    LampSound.load("lamp.mp3");
+    BookSound.setVolume(1.0f);
+    PhoneSound_noti.setVolume(1.0f);
+    PhoneSound_alarm.setVolume(1.0f);
+    ForestSound.setVolume(1.0f);
+    LampSound.setVolume(1.0f);
+    BookSound.setMultiPlay(false);
+    PhoneSound_noti.setMultiPlay(false);
+    PhoneSound_alarm.setMultiPlay(false);
+    ForestSound.setMultiPlay(false);
+    LampSound.setMultiPlay(false);
+    
     //-------------
     // Kinect setup
     //-------------
@@ -60,7 +79,7 @@ void ofApp::setup() {
 #ifdef SERIAL
     vector <ofSerialDeviceInfo> deviceList = serial.getDeviceList();
     int baud = 9600;
-    serial.setup("/dev/tty.usbmodem1412401", baud);
+    serial.setup("/dev/tty.usbmodem1432401", baud);
 #endif
     
     //----------
@@ -80,6 +99,7 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update() {
     ofBackground(100, 100, 100);
+    ofSoundUpdate();
     
     //---------------
     // Adjust Mapping
@@ -194,17 +214,70 @@ void ofApp::update() {
                 tuple<int, int> grids = getGrids(mapped_x, mapped_y);
                 grid_x = get<0>(grids);
                 grid_y = get<1>(grids);
-#ifdef SERIAL
+
                 if( (grid_x>=0&grid_x<=7) & (grid_y>=0&grid_y<=12) ){
                     if(grid_x%2==0){
-                        index = 12*grid_x+grid_y;
+                        LEDindex = 12*grid_x+grid_y;
                     }else if(grid_x%2==1){
-                        index = 12*(grid_x+1)-1-grid_y;
+                        LEDindex = 12*(grid_x+1)-1-grid_y;
                     }
-                    serial.flush();
-                    serial.writeByte(index);
                 }
+#ifdef SERIAL
+                serial.flush();
+                if(preLEDindex != LEDindex){
+                    serial.writeByte(LEDindex);
+                    preLEDindex = LEDindex;
+                }
+                
+//                dataFromArd = serial.readByte();
+//                if (dataFromArd == OF_SERIAL_NO_DATA){
+//                    BookSound.stop();
+//                    PhoneSound_noti.stop();
+//                    PhoneSound_alarm.stop();
+//                    ForestSound.stop();
+//                    LampSound.stop();
+//                    phoneNotiPlayed = false;
+//                    phoneNotiStartTime = 0;
+//                    lampPlayed = false;
+//                }
+//                else if ( dataFromArd == OF_SERIAL_ERROR )
+//                  printf("an error occurred");
+//                // book sound
+//                if(dataFromArd == bookData){
+//                    if(!BookSound.isPlaying()){
+//                        BookSound.play();
+//                    }
+//                }
+//                // phone sound
+//                if(dataFromArd == phoneData){
+//                    if(!phoneNotiPlayed && !PhoneSound_noti.isPlaying()){
+//                        PhoneSound_noti.play();
+//                        // start timer
+//                        phoneNotiStartTime = ofGetElapsedTimef();
+//                    }else if(phoneNotiStartTime!=0){
+//                        if((ofGetElapsedTimef()-phoneNotiStartTime)>5){
+//                            phoneNotiStartTime = 0;
+//                            PhoneSound_noti.stop();
+//                            phoneNotiPlayed = true;
+//                        }
+//                    }
+//                    else if (!PhoneSound_alarm.isPlaying() && phoneNotiPlayed){
+//                        PhoneSound_alarm.play();
+//                    }
+//                }
+//                // lamp data
+//                if(dataFromArd == lampData){
+//                    if(!lampPlayed && !LampSound.isPlaying()){
+//                        LampSound.play();
+//                        lampPlayed=true;
+//                    }
+//                }
 #endif
+                // play forest sound
+                if ((LEDindex == 13 || LEDindex == 10 || LEDindex == 12) && !ForestSound.isPlaying()){
+                    ForestSound.play();
+                }
+                
                 gridsList.push_back(grids);
             }
         }

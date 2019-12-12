@@ -1,37 +1,36 @@
 /*
- * Phone, Book
- * 
- * data4Characteristic:
- * 0 -> Phone on the table;
- * 255 -> Phone picked up;
- * 
- * data5Characteristic:
- * 0 -> Book on the table;
- * 255 -> Book picked up;
- */
+   Phone, Book
+
+   data4Characteristic:
+   0 -> Phone on the table;
+   255 -> Phone picked up;
+
+   data5Characteristic:
+   0 -> Book on the table;
+   255 -> Book picked up;
+*/
 
 #include <ArduinoBLE.h>
 
-#define LEDpin 2
-#define phonePin A7
-#define bookPin A6
+#define phonePin A6
+#define bookPin A7
 
 byte data1 = 0;
 byte data2 = 0;
 byte data3 = 0;
-byte data4 = 255;
-byte data5 = 255;
+byte data4 = 0;
+byte data5 = 0;
 
 BLEService fourthService("c648e398-1122-11ea-8d71-362b9e155667");
-BLEByteCharacteristic data1Characteristic("c648e399-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data2Characteristic("c648e400-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data3Characteristic("c648e401-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data4Characteristic("c648e402-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data5Characteristic("c648e403-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
+BLEByteCharacteristic data1Characteristic("c648e399-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data2Characteristic("c648e400-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data3Characteristic("c648e401-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data4Characteristic("c648e402-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data5Characteristic("c648e403-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
 
 void setup() {
   Serial.begin (9600);
-  pinMode(LEDpin, OUTPUT);
+  pinMode(LED_BUILTIN , OUTPUT);
   pinMode(phonePin, INPUT);
   pinMode(bookPin, INPUT);
 
@@ -61,7 +60,7 @@ void loop() {
   //-----------------------------
 
   BLEDevice peripheral = BLE.available();
-  if (peripheral){
+  if (peripheral) {
     Serial.println("Found");
     BLE.stopScan();
     getData(peripheral);
@@ -91,34 +90,37 @@ void getData(BLEDevice peripheral) {
     peripheral.disconnect();
     return;
   }
-  while(peripheral.connected()){
+  while (peripheral.connected()) {
     BLEDevice central = BLE.central();
-    if (central){
+    if (central) {
       Serial.println(central.address());
-      while (central.connected()){
-        digitalWrite(LEDpin, HIGH);
-        preData1Characteristic.readValue(data1);
-        preData2Characteristic.readValue(data2);
-        preData3Characteristic.readValue(data3);
-        data1Characteristic.writeValue(data1);
-        data2Characteristic.writeValue(data2);
-        data3Characteristic.writeValue(data3);
+      while (central.connected()) {
+        digitalWrite(LED_BUILTIN , HIGH);
+          preData1Characteristic.readValue(data1);
+          data1Characteristic.writeValue(data1);
+          preData2Characteristic.readValue(data2);
+          data2Characteristic.writeValue(data2);
+          preData3Characteristic.readValue(data3);
+          data3Characteristic.writeValue(data3);
 
-        if(analogRead(phonePin)>900){
+        if (analogRead(phonePin) > 900) {
+          if(data4Characteristic.value()==255)
           data4Characteristic.writeValue(0);
-        }else if(analogRead(phonePin)<200){
+        } else {
+          if(data4Characteristic.value()==0)
           data4Characteristic.writeValue(255);
         }
-        
-        if(analogRead(bookPin)>900){
+
+        if (analogRead(bookPin) > 900) {
           data5Characteristic.writeValue(0);
-        }else if(analogRead(bookPin)<200){
+        } else {
+          if(data5Characteristic.value()==0)
           data5Characteristic.writeValue(255);
         }
       }
-      digitalWrite(LEDpin, LOW);
+      digitalWrite(LED_BUILTIN , LOW);
     }
   }
-  
+
   peripheral.disconnect();
 }

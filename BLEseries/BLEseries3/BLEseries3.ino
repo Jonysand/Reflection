@@ -1,30 +1,29 @@
 /*
- * Door
- * 
- * data3Characteristic: 
- * 0 -> closed;
- * 255 -> opened;
- */
+   Door
+
+   data3Characteristic:
+   0 -> closed;
+   255 -> opened;
+*/
 
 #include <ArduinoBLE.h>
 
-#define LEDpin 2
-#define doorPin 3
+#define doorPin 2
 
 int doorState = LOW;
 
 byte data1 = 0;
 byte data2 = 0;
-byte data3 = 255;
+byte data3 = 0;
 
 BLEService thirdService("c648e26c-1122-11ea-8d71-362b9e155667");
-BLEByteCharacteristic data1Characteristic("c648e26d-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data2Characteristic("c648e26e-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
-BLEByteCharacteristic data3Characteristic("c648e26f-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLENotify);
+BLEByteCharacteristic data1Characteristic("c648e26d-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data2Characteristic("c648e26e-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data3Characteristic("c648e26f-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
 
 void setup() {
   Serial.begin (9600);
-  pinMode(LEDpin, OUTPUT);
+  pinMode(LED_BUILTIN , OUTPUT);
   pinMode(doorPin, INPUT);
 
   BLE.begin();
@@ -49,7 +48,7 @@ void loop() {
   //-----------------------------
 
   BLEDevice peripheral = BLE.available();
-  if (peripheral){
+  if (peripheral) {
     Serial.println("Found");
     BLE.stopScan();
     getData(peripheral);
@@ -78,26 +77,28 @@ void getData(BLEDevice peripheral) {
     peripheral.disconnect();
     return;
   }
-  while(peripheral.connected()){
+  while (peripheral.connected()) {
     BLEDevice central = BLE.central();
-    if (central){
+    if (central) {
       Serial.println(central.address());
-      while (central.connected()){
-        digitalWrite(LEDpin, HIGH);
-        preData1Characteristic.readValue(data1);
-        preData2Characteristic.readValue(data2);
-        data1Characteristic.writeValue(data1);
-        data2Characteristic.writeValue(data2);
+      while (central.connected()) {
+        digitalWrite(LED_BUILTIN , HIGH);
+          preData1Characteristic.readValue(data1);
+          data1Characteristic.writeValue(data1);
+          preData2Characteristic.readValue(data2);
+          data2Characteristic.writeValue(data2);
 
-        if(digitalRead(doorPin)==LOW){
-          data3Characteristic.writeValue(0);
-        }else{
+        if (digitalRead(doorPin) == LOW) {
+          if(data3Characteristic.value()==0)
           data3Characteristic.writeValue(255);
+        } else {
+          if(data3Characteristic.value()==255)
+          data3Characteristic.writeValue(0);
         }
       }
-      digitalWrite(LEDpin, LOW);
+      digitalWrite(LED_BUILTIN , LOW);
     }
   }
-  
+
   peripheral.disconnect();
 }
