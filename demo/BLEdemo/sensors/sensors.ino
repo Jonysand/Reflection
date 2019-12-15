@@ -37,12 +37,12 @@ void loop() {
    if (central) {
     digitalWrite(LED_BUILTIN, HIGH);
     while (central.connected()) {
-      if(digitalRead(2) ==LOW){
-        if(chairCharacteristic.value()==0)
+      if(analogRead(A7) < 128 ){
+        if (chairCharacteristic.value() != 255)
         chairCharacteristic.writeValue(255);
       }
       else{
-        if(chairCharacteristic.value()==255)
+        if (chairCharacteristic.value() != 0)
         chairCharacteristic.writeValue(0);
       }
     }

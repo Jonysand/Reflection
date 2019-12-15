@@ -8,18 +8,15 @@ void ofApp::setup() {
     // Sound preload
     //--------------
     BookSound.load("book.wav");
-    PhoneSound_noti.load("phone_noti.mp3");
-    PhoneSound_alarm.load("phone_radar.mp3");
+    PhoneSound.load("phone.mp3");
     ForestSound.load("forest.mp3");
     LampSound.load("lamp.mp3");
     BookSound.setVolume(1.0f);
-    PhoneSound_noti.setVolume(1.0f);
-    PhoneSound_alarm.setVolume(1.0f);
+    PhoneSound.setVolume(1.0f);
     ForestSound.setVolume(1.0f);
     LampSound.setVolume(1.0f);
     BookSound.setMultiPlay(false);
-    PhoneSound_noti.setMultiPlay(false);
-    PhoneSound_alarm.setMultiPlay(false);
+    PhoneSound.setMultiPlay(false);
     ForestSound.setMultiPlay(false);
     LampSound.setMultiPlay(false);
     
@@ -45,13 +42,13 @@ void ofApp::setup() {
     
     grayPreImage.setFromPixels(kinect.getDepthPixels());
     nearThreshold.set("Near Threshold", 255, 0, 255);
-    farThreshold.set("Far Threshold", 197, 0, 255);
+    farThreshold.set("Far Threshold", 210, 0, 255);
     blobMinArea.set("Blob Min Area", 1000, 100, 5000);
     simpleThreshold.set("Threshold Value of BGS", 70, 0, 255);
     captureBackground.set("Capture BG", true);
     angle = 0;
     kinect.setCameraTiltAngle(angle);
-    findingMethod.set("Findning Method", 3, 1, 4);
+    findingMethod.set("Findning Method", 4, 1, 4);
     
     
     //--------------
@@ -191,6 +188,10 @@ void ofApp::update() {
         }
         
         if(homographyReady){
+#ifdef SERIAL
+            isPaint = false;
+            isTree = false;
+#endif
             for(int i=0;i<contourFinder.nBlobs;i++){
                 auto center =  contourFinder.blobs[i].centroid;
                 // from top
@@ -207,79 +208,88 @@ void ofApp::update() {
                 else{
                     mapped_x = center.x;
                     mapped_y = kinect.getDistanceAt(center.x, center.y);
-//                    double theta = PI/3*(0.5-center.x/kinect.width);
-//                    mapped_y = cos(theta) * kinect.getDistanceAt(center.x, center.y);
-//                    mapped_x = roomWidth/2 - sin(theta)*kinect.getDistanceAt(center.x, center.y);
+                    //                    double theta = PI/3*(0.5-center.x/kinect.width);
+                    //                    mapped_y = cos(theta) * kinect.getDistanceAt(center.x, center.y);
+                    //                    mapped_x = roomWidth/2 - sin(theta)*kinect.getDistanceAt(center.x, center.y);
                 }
                 tuple<int, int> grids = getGrids(mapped_x, mapped_y);
                 grid_x = get<0>(grids);
                 grid_y = get<1>(grids);
-
-                if( (grid_x>=0&grid_x<=7) & (grid_y>=0&grid_y<=12) ){
-                    if(grid_x%2==0){
-                        LEDindex = 12*grid_x+grid_y;
-                    }else if(grid_x%2==1){
-                        LEDindex = 12*(grid_x+1)-1-grid_y;
-                    }
-                }
 #ifdef SERIAL
-                serial.flush();
-                if(preLEDindex != LEDindex){
-                    serial.writeByte(LEDindex);
-                    preLEDindex = LEDindex;
+                // Paint
+                if((grid_x>=3) && (grid_y <= 2) && (!isPaint)){
+                    isPaint = true;
+                // Tree
+                }else if ((grid_x<=2) && (grid_y >= 9) && (!isTree)){
+                    isTree = true;
                 }
-                
-//                dataFromArd = serial.readByte();
-//                if (dataFromArd == OF_SERIAL_NO_DATA){
-//                    BookSound.stop();
-//                    PhoneSound_noti.stop();
-//                    PhoneSound_alarm.stop();
-//                    ForestSound.stop();
-//                    LampSound.stop();
-//                    phoneNotiPlayed = false;
-//                    phoneNotiStartTime = 0;
-//                    lampPlayed = false;
-//                }
-//                else if ( dataFromArd == OF_SERIAL_ERROR )
-//                  printf("an error occurred");
-//                // book sound
-//                if(dataFromArd == bookData){
-//                    if(!BookSound.isPlaying()){
-//                        BookSound.play();
-//                    }
-//                }
-//                // phone sound
-//                if(dataFromArd == phoneData){
-//                    if(!phoneNotiPlayed && !PhoneSound_noti.isPlaying()){
-//                        PhoneSound_noti.play();
-//                        // start timer
-//                        phoneNotiStartTime = ofGetElapsedTimef();
-//                    }else if(phoneNotiStartTime!=0){
-//                        if((ofGetElapsedTimef()-phoneNotiStartTime)>5){
-//                            phoneNotiStartTime = 0;
-//                            PhoneSound_noti.stop();
-//                            phoneNotiPlayed = true;
-//                        }
-//                    }
-//                    else if (!PhoneSound_alarm.isPlaying() && phoneNotiPlayed){
-//                        PhoneSound_alarm.play();
-//                    }
-//                }
-//                // lamp data
-//                if(dataFromArd == lampData){
-//                    if(!lampPlayed && !LampSound.isPlaying()){
-//                        LampSound.play();
-//                        lampPlayed=true;
-//                    }
-//                }
 #endif
-                // play forest sound
-                if ((LEDindex == 13 || LEDindex == 10 || LEDindex == 12) && !ForestSound.isPlaying()){
-                    ForestSound.play();
-                }
-                
                 gridsList.push_back(grids);
             }
+            
+#ifdef SERIAL
+            //----------
+            // Send Data
+            //----------
+            if(isPaint && !paintDataSent) {
+                serial.writeByte(paintData);
+                paintDataSent = true;
+                nullDataSent = false;
+            }
+            else if(isTree && !treeDataSent) {
+                serial.writeByte(treeData);
+                if(!ForestSound.isPlaying()){
+                    ForestSound.play();
+                }
+                treeDataSent = true;
+                nullDataSent = false;
+            }
+            if(!nullDataSent && !isPaint && !isTree){
+                serial.writeByte(nullData);
+                paintDataSent = false;
+                treeDataSent = false;
+                nullDataSent = true;
+            }
+            
+            //-------------
+            // Receive Data
+            //-------------
+            dataFromArd = serial.readByte();
+            if ( dataFromArd == OF_SERIAL_ERROR ) printf("an error occurred");
+            
+            // book sound
+            if(dataFromArd == bookData){
+                if(!BookSound.isPlaying()){
+                    BookSound.play();
+                }
+            }
+            
+            // phone sound
+            if(dataFromArd == phoneData){
+                if(!PhoneSound.isPlaying()){
+                    PhoneSound.play();
+                }
+            }
+            
+            // lamp sound
+            if(dataFromArd == lampData){
+                if(!lampPlayed && !LampSound.isPlaying()){
+                    LampSound.play();
+                    lampPlayed=true;
+                }
+            }else if(!LampSound.isPlaying()){
+                lampPlayed=false;
+            }
+            
+            // Stop All sound
+            if(dataFromArd == nullDataFromArd){
+                BookSound.stop();
+                PhoneSound.stop();
+                ForestSound.stop();
+                LampSound.stop();
+//                cout<<"stop"<<endl;
+            }
+#endif
         }
     }
 }

@@ -84,10 +84,13 @@ public:
     // Sound
     //------
     ofSoundPlayer  BookSound;
-    ofSoundPlayer  PhoneSound_noti;
-    ofSoundPlayer  PhoneSound_alarm;
+    ofSoundPlayer  PhoneSound;
     ofSoundPlayer  ForestSound;
     ofSoundPlayer  LampSound;
+    const unsigned char nullData = 1;
+    const unsigned char treeData = 32;
+    const unsigned char paintData = 224;
+    const Byte nullDataFromArd = 1;
     const Byte bookData = 64;
     const Byte phoneData = 128;
     bool phoneNotiPlayed = false;
@@ -101,10 +104,15 @@ public:
     //-------
 #ifdef SERIAL
     ofSerial    serial;
+        int dataFromArd;
+    bool isTree = false;
+    bool treeDataSent = false;
+    bool isPaint = false;
+    bool paintDataSent = false;
+    bool nullDataSent = false;
+    bool isBook = false;
+    bool isPhone = false;
 #endif
-    unsigned char LEDindex = 0;
-    unsigned char preLEDindex = 0;
-    int dataFromArd;
     
     //--------------------------
     // simualtion mapping canvas

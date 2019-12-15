@@ -20,7 +20,7 @@ int sensorValue = 0;
 byte data1 = 0;
 
 BLEService firstService("c648dc40-1122-11ea-8d71-362b9e155667");
-BLEByteCharacteristic data1Characteristic("c648dc41-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+BLEByteCharacteristic data1Characteristic("c648dc41-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite | BLEIndicate);
 
 void setup() {
   Serial.begin (9600);

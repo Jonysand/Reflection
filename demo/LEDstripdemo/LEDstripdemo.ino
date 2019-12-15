@@ -86,9 +86,9 @@ void loop() {
   //  strip.show();
   //  delay(10);
 //    if(testFlag == 1){
-//      wave();
+      wave();
 //    }
-  HueFlow();
+//  HueFlow();
 }
 
 void stateChanged() {
@@ -184,7 +184,7 @@ void stateThree() {
 void HueFlow() {
   for (int y = 0; y < 12; y++) {
     for (int x = 0; x < 7; x++) {
-      strip.setPixelColor(cord2index(x, y), strip.gamma32(strip.ColorHSV(calculateBrightnessToSin(millis() * 4, -21844 - y * 920, 9557 - y * 920) + y * 920, 255, 255)));
+      strip.setPixelColor(cord2index(x, y), strip.gamma32(strip.ColorHSV(calculateBrightnessToSin(millis() * 4, -18164 - y * 920, 9557 - y * 920) + y * 920, 255, 255)));
     }
   }
   strip.show();

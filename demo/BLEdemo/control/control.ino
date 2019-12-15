@@ -14,6 +14,7 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
 void setup() {
   Serial.begin(9600);
+  pinMode(2, OUTPUT);
 
   //----------
   // LED setup
@@ -53,45 +54,22 @@ void getData(BLEDevice peripheral) {
   }
 
   BLECharacteristic chairCharacteristic = peripheral.characteristic("ede2f3d7-856d-41a8-811b-ed1385c2d44a");
+  chairCharacteristic.subscribe();
   if (!chairCharacteristic) {
     peripheral.disconnect();
     return;
   }
-  chairCharacteristic.setEventHandler(BLEWritten, changeBG);
+  
   while (peripheral.connected()) {
     if (chairCharacteristic.valueUpdated()) {
       chairCharacteristic.readValue(dataReturned);
-      Serial.println("updated");
       data = dataReturned;
     }
-    Serial.println(data);
-    //    Serial.println(*bytesReadString, DEC);
+    if(data==255) digitalWrite(2, HIGH);
+    else digitalWrite(2, LOW);
+//    Serial.println(data);
     
   }
 
   peripheral.disconnect();
-}
-
-int cord2index(int x, int y) {
-  if (x % 2 == 0) {
-    return 12 * x + y;
-  } else {
-    return 12 * (x + 1) - 1 - y;
-  }
-}
-
-void changeBG(BLEDevice central, BLECharacteristic characteristic){
-  data = *characteristic.value();
-  if (*characteristic.value() > 128) {
-      for (int y = 0; y < 12; y++) {
-        for (int x = 0; x < 7; x++) {
-          int color1 = 1820 * y + millis() * 10;
-          strip.setPixelColor(cord2index(x, y), strip.gamma32(strip.ColorHSV(color1, 255, 255)));
-        }
-      }
-      strip.show();
-    } else {
-      strip.fill(background, 0, 84);
-      strip.show();
-    }
 }

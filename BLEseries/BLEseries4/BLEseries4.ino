@@ -20,6 +20,7 @@ byte data2 = 0;
 byte data3 = 0;
 byte data4 = 0;
 byte data5 = 0;
+byte dataReturned;
 
 BLEService fourthService("c648e398-1122-11ea-8d71-362b9e155667");
 BLEByteCharacteristic data1Characteristic("c648e399-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
@@ -27,6 +28,10 @@ BLEByteCharacteristic data2Characteristic("c648e400-1122-11ea-8d71-362b9e155667"
 BLEByteCharacteristic data3Characteristic("c648e401-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
 BLEByteCharacteristic data4Characteristic("c648e402-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
 BLEByteCharacteristic data5Characteristic("c648e403-1122-11ea-8d71-362b9e155667", BLERead | BLEWrite);
+
+BLECharacteristic preData1Characteristic;
+BLECharacteristic preData2Characteristic;
+BLECharacteristic preData3Characteristic;
 
 void setup() {
   Serial.begin (9600);
@@ -82,40 +87,41 @@ void getData(BLEDevice peripheral) {
     return;
   }
 
-  BLECharacteristic preData1Characteristic = peripheral.characteristic("c648e26d-1122-11ea-8d71-362b9e155667");
-  BLECharacteristic preData2Characteristic = peripheral.characteristic("c648e26e-1122-11ea-8d71-362b9e155667");
-  BLECharacteristic preData3Characteristic = peripheral.characteristic("c648e26f-1122-11ea-8d71-362b9e155667");
+  preData1Characteristic = peripheral.characteristic("c648e26d-1122-11ea-8d71-362b9e155667");
+  preData2Characteristic = peripheral.characteristic("c648e26e-1122-11ea-8d71-362b9e155667");
+  preData3Characteristic = peripheral.characteristic("c648e26f-1122-11ea-8d71-362b9e155667");
+  preData1Characteristic.setEventHandler(BLEWritten, data1Written);
+  preData2Characteristic.setEventHandler(BLEWritten, data2Written);
+  preData3Characteristic.setEventHandler(BLEWritten, data3Written);
   if (!preData1Characteristic || !preData2Characteristic || !preData3Characteristic) {
     Serial.println("fail BLECharacteristic!");
     peripheral.disconnect();
     return;
   }
+  preData1Characteristic.subscribe();
+  preData2Characteristic.subscribe();
+  preData3Characteristic.subscribe();
   while (peripheral.connected()) {
     BLEDevice central = BLE.central();
     if (central) {
       Serial.println(central.address());
       while (central.connected()) {
         digitalWrite(LED_BUILTIN , HIGH);
-          preData1Characteristic.readValue(data1);
-          data1Characteristic.writeValue(data1);
-          preData2Characteristic.readValue(data2);
-          data2Characteristic.writeValue(data2);
-          preData3Characteristic.readValue(data3);
-          data3Characteristic.writeValue(data3);
-
+        
         if (analogRead(phonePin) > 900) {
-          if(data4Characteristic.value()==255)
-          data4Characteristic.writeValue(0);
+          if (data4Characteristic.value() == 255)
+            data4Characteristic.writeValue(0);
         } else {
-          if(data4Characteristic.value()==0)
-          data4Characteristic.writeValue(255);
+          if (data4Characteristic.value() == 0)
+            data4Characteristic.writeValue(255);
         }
 
         if (analogRead(bookPin) > 900) {
-          data5Characteristic.writeValue(0);
+          if (data5Characteristic.value() == 255)
+            data5Characteristic.writeValue(0);
         } else {
-          if(data5Characteristic.value()==0)
-          data5Characteristic.writeValue(255);
+          if (data5Characteristic.value() == 0)
+            data5Characteristic.writeValue(255);
         }
       }
       digitalWrite(LED_BUILTIN , LOW);
@@ -123,4 +129,28 @@ void getData(BLEDevice peripheral) {
   }
 
   peripheral.disconnect();
+}
+
+void data1Written(BLEDevice central, BLECharacteristic characteristic) {
+  preData1Characteristic.readValue(dataReturned);
+  if (data1 != dataReturned) {
+    data1 = dataReturned;
+    data1Characteristic.writeValue(data1);
+  }
+}
+
+void data2Written(BLEDevice central, BLECharacteristic characteristic) {
+  preData2Characteristic.readValue(dataReturned);
+  if (data2 != dataReturned) {
+    data2 = dataReturned;
+    data2Characteristic.writeValue(data2);
+  }
+}
+
+void data3Written(BLEDevice central, BLECharacteristic characteristic) {
+  preData3Characteristic.readValue(dataReturned);
+  if (data3 != dataReturned) {
+    data3 = dataReturned;
+    data3Characteristic.writeValue(data3);
+  }
 }
