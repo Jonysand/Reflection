@@ -205,7 +205,7 @@ void ControlLoop() {
       Serial.write(lampData);
       doorOpened = true;
     }
-  }else{
+  } else {
     analogWrite(ledRpin, 255);
     analogWrite(ledGpin, 255);
     analogWrite(ledBpin, 255);
@@ -219,11 +219,9 @@ void ControlLoop() {
     if (!isBook) {
       brightnessAdd = -abs(brightnessAdd);
       minBrightness = 20;
-      if ((brightness + brightnessAdd) <= minBrightness) {
-        background = bookColor;
-        isBook = true;
-        if (Serial.availableForWrite()) Serial.write(bookData);
-      }
+      background = bookColor;
+      isBook = true;
+      if (Serial.availableForWrite()) Serial.write(bookData);
     }
   } else {
     isBook = false;
@@ -237,10 +235,8 @@ void ControlLoop() {
   if (serialData == treeData) {
     if (!isTree) {
       brightnessAdd = -abs(brightnessAdd);
-      if ((brightness + brightnessAdd) <= minBrightness) {
-        isTree = true;
-        background = treeColor;
-      }
+      isTree = true;
+      background = treeColor;
     }
   }
 
@@ -250,9 +246,7 @@ void ControlLoop() {
   if (serialData == paintData) {
     if (!isHueFlow) {
       brightnessAdd = -abs(brightnessAdd);
-      if ((brightness + brightnessAdd) <= minBrightness) {
-        isHueFlow = true;
-      }
+      isHueFlow = true;
     }
   }
 
@@ -262,11 +256,9 @@ void ControlLoop() {
   if (data4 == 255) {
     if (!isPhone) {
       brightnessAdd = -abs(brightnessAdd);
-      if ((brightness + brightnessAdd) <= minBrightness) {
-        background = phoneColor;
-        isPhone = true;
-        if (Serial.availableForWrite()) Serial.write(phoneData);
-      }
+      background = phoneColor;
+      isPhone = true;
+      if (Serial.availableForWrite()) Serial.write(phoneData);
     }
   } else {
     isPhone = false;
@@ -310,7 +302,8 @@ void ControlLoop() {
   }
   brightness += brightnessAdd;
   if (isPhone) strip.setBrightness(map(brightnessAdd, -abs(brightnessAdd), abs(brightnessAdd), 0, 254));
-  else strip.setBrightness(brightness);
+  else if (isBook || isTree || isHueFlow) strip.setBrightness(brightness);
+  else strip.setBrightness(254);
   strip.show();
 }
 

@@ -104,7 +104,7 @@ public:
     //-------
 #ifdef SERIAL
     ofSerial    serial;
-        int dataFromArd;
+    int dataFromArd;
     bool isTree = false;
     bool treeDataSent = false;
     bool isPaint = false;

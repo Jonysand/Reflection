@@ -7,12 +7,14 @@ void ofApp::setup() {
     //--------------
     // Sound preload
     //--------------
-    BookSound.load("book.wav");
+//    BookSound.load("book.wav");
+    BookSound.load("book(RS).mp3");
     PhoneSound.load("phone.mp3");
-    ForestSound.load("forest.mp3");
+//    ForestSound.load("forest.mp3");
+    ForestSound.load("Rain.wav");
     LampSound.load("lamp.mp3");
     BookSound.setVolume(1.0f);
-    PhoneSound.setVolume(1.0f);
+    PhoneSound.setVolume(0.5f);
     ForestSound.setVolume(1.0f);
     LampSound.setVolume(1.0f);
     BookSound.setMultiPlay(false);
@@ -43,8 +45,8 @@ void ofApp::setup() {
     grayPreImage.setFromPixels(kinect.getDepthPixels());
     nearThreshold.set("Near Threshold", 255, 0, 255);
     farThreshold.set("Far Threshold", 210, 0, 255);
-    blobMinArea.set("Blob Min Area", 1000, 100, 5000);
-    simpleThreshold.set("Threshold Value of BGS", 70, 0, 255);
+    blobMinArea.set("Blob Min Area", 2500, 100, 5000);
+    simpleThreshold.set("Threshold Value of BGS", 20, 0, 255);
     captureBackground.set("Capture BG", true);
     angle = 0;
     kinect.setCameraTiltAngle(angle);
@@ -220,7 +222,7 @@ void ofApp::update() {
                 if((grid_x>=3) && (grid_y <= 2) && (!isPaint)){
                     isPaint = true;
                 // Tree
-                }else if ((grid_x<=2) && (grid_y >= 9) && (!isTree)){
+                }else if ((grid_y >= 8) && (!isTree)){
                     isTree = true;
                 }
 #endif
@@ -238,9 +240,7 @@ void ofApp::update() {
             }
             else if(isTree && !treeDataSent) {
                 serial.writeByte(treeData);
-                if(!ForestSound.isPlaying()){
-                    ForestSound.play();
-                }
+                ForestSound.play();
                 treeDataSent = true;
                 nullDataSent = false;
             }
@@ -274,7 +274,7 @@ void ofApp::update() {
             // lamp sound
             if(dataFromArd == lampData){
                 if(!lampPlayed && !LampSound.isPlaying()){
-                    LampSound.play();
+//                    LampSound.play();
                     lampPlayed=true;
                 }
             }else if(!LampSound.isPlaying()){
@@ -282,7 +282,7 @@ void ofApp::update() {
             }
             
             // Stop All sound
-            if(dataFromArd == nullDataFromArd){
+            if(dataFromArd == nullDataFromArd && !isTree){
                 BookSound.stop();
                 PhoneSound.stop();
                 ForestSound.stop();
